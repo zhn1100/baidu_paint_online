@@ -1,7 +1,6 @@
 import sqlite3
 import json
 from datetime import datetime, timedelta
-import hashlib
 import secrets
 
 class DatabaseManager:
