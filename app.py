@@ -1,10 +1,9 @@
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from database import DatabaseManager
 from image_processor import ImageProcessor
-import json
 import os
 import secrets
-from datetime import datetime, timedelta
+from datetime import  timedelta
 from dotenv import load_dotenv
 
 # 加载.env文件中的环境变量
@@ -317,5 +316,5 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=5000)
+#if __name__ == '__main__':
+    #app.run(debug=False, host='0.0.0.0', port=5000)
