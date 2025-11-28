@@ -2,10 +2,34 @@ from flask import Flask, request, jsonify, render_template, session, redirect, u
 from database import DatabaseManager
 from image_processor import ImageProcessor
 import json
+import os
+import secrets
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+# 加载.env文件中的环境变量
+load_dotenv()
+
+# 安全配置
+def get_secret_key():
+    """从环境变量获取密钥，如果没有则生成一个安全的随机密钥"""
+    secret_key = os.environ.get('SECRET_KEY')
+    if not secret_key:
+        # 生成安全的随机密钥（仅用于开发环境）
+        secret_key = secrets.token_hex(32)
+        print("警告：使用生成的开发环境密钥，生产环境请设置SECRET_KEY环境变量")
+    return secret_key
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here'  # 在生产环境中应该使用安全的密钥
+app.secret_key = get_secret_key()
+
+# 配置安全的会话设置
+app.config.update(
+    SESSION_COOKIE_SECURE=False,  # 生产环境应设为True（需要HTTPS）
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    PERMANENT_SESSION_LIFETIME=timedelta(days=7)  # 会话持续7天
+)
 
 # 初始化管理器
 db_manager = DatabaseManager()
@@ -154,7 +178,7 @@ def get_space_data(space_id):
 
 @app.route('/api/space/<int:space_id>/mark_complete', methods=['POST'])
 def mark_pixel_complete(space_id):
-    """标记像素为已完成"""
+    """标记单个像素为已完成"""
     try:
         username = session.get('username')
         if not username:
@@ -173,6 +197,35 @@ def mark_pixel_complete(space_id):
             return jsonify({'error': result['error']}), 400
         
         return jsonify({'success': True})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/space/<int:space_id>/batch_complete', methods=['POST'])
+def batch_mark_pixels_complete(space_id):
+    """批量标记像素为已完成"""
+    try:
+        username = session.get('username')
+        if not username:
+            return jsonify({'error': '未登录'}), 401
+        
+        data = request.json
+        pixels = data.get('pixels', [])
+        
+        if not pixels:
+            return jsonify({'error': '没有选择像素'}), 400
+        
+        # 验证像素数据格式
+        for pixel in pixels:
+            if 'x' not in pixel or 'y' not in pixel:
+                return jsonify({'error': '像素数据格式错误'}), 400
+        
+        result = db_manager.batch_mark_pixels_complete(space_id, username, pixels)
+        
+        if 'error' in result:
+            return jsonify({'error': result['error']}), 400
+        
+        return jsonify(result)
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500

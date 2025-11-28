@@ -242,6 +242,54 @@
             background: #218838;
         }
         
+        .coloring-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .batch-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .batch-controls .btn {
+            background: #4facfe;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            font-size: 0.9em;
+        }
+        
+        .batch-controls .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .batch-info {
+            background: #e7f3ff;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border: 1px solid #b3d9ff;
+        }
+        
+        .batch-info p {
+            margin: 0;
+            color: #0066cc;
+            font-weight: bold;
+        }
+        
+        .batch-selector {
+            margin-right: 10px;
+        }
+        
+        .coloring-item.selected {
+            background-color: #e7f3ff;
+            border-left: 4px solid #4facfe;
+        }
+        
         .status-badge {
             padding: 4px 8px;
             border-radius: 12px;
@@ -331,7 +379,17 @@
                 </div>
                 
                 <div class="coloring-section">
-                    <h3>填色列表</h3>
+                    <div class="coloring-header">
+                        <h3>填色列表</h3>
+                        <div class="batch-controls">
+                            <button class="btn batch-mode-btn" id="batchModeBtn">批量选择模式</button>
+                            <button class="btn submit-batch-btn" id="submitBatchBtn" disabled>提交选中项 (0/40)</button>
+                            <button class="btn cancel-batch-btn" id="cancelBatchBtn" disabled>取消批量</button>
+                        </div>
+                    </div>
+                    <div class="batch-info" id="batchInfo" style="display: none;">
+                        <p>已选择 <span id="selectedCount">0</span> 个像素 (最多40个)</p>
+                    </div>
                     <div class="coloring-list" id="coloringList">
                         <div class="loading">
                             <div class="spinner"></div>
@@ -381,6 +439,8 @@
 
     <script>
         let currentSpaceId = "{{ space_info.id }}";
+        let isBatchMode = false;
+        let selectedPixels = new Set();
         
         // 初始化页面
         document.addEventListener('DOMContentLoaded', function() {
@@ -403,6 +463,15 @@
             if (statsBtn) {
                 statsBtn.addEventListener('click', showStats);
             }
+            
+            // 批量选择模式按钮
+            document.getElementById('batchModeBtn').addEventListener('click', toggleBatchMode);
+            
+            // 提交批量按钮
+            document.getElementById('submitBatchBtn').addEventListener('click', submitBatch);
+            
+            // 取消批量按钮
+            document.getElementById('cancelBatchBtn').addEventListener('click', cancelBatchMode);
         }
         
         async function loadSpaceData() {
@@ -556,6 +625,162 @@
                 console.error('标记完成错误:', error);
                 alert('标记完成失败: ' + error.message);
             }
+        }
+        
+        // 批量选择功能
+        function toggleBatchMode() {
+            isBatchMode = !isBatchMode;
+            updateBatchUI();
+            
+            if (isBatchMode) {
+                enableBatchSelection();
+            } else {
+                disableBatchSelection();
+            }
+        }
+        
+        function updateBatchUI() {
+            const batchModeBtn = document.getElementById('batchModeBtn');
+            const submitBatchBtn = document.getElementById('submitBatchBtn');
+            const cancelBatchBtn = document.getElementById('cancelBatchBtn');
+            const batchInfo = document.getElementById('batchInfo');
+            
+            if (isBatchMode) {
+                batchModeBtn.textContent = '退出批量模式';
+                batchModeBtn.style.background = '#ff6b6b';
+                submitBatchBtn.disabled = selectedPixels.size === 0;
+                cancelBatchBtn.disabled = false;
+                batchInfo.style.display = 'block';
+                updateSelectedCount();
+            } else {
+                batchModeBtn.textContent = '批量选择模式';
+                batchModeBtn.style.background = '#4facfe';
+                submitBatchBtn.disabled = true;
+                cancelBatchBtn.disabled = true;
+                batchInfo.style.display = 'none';
+                selectedPixels.clear();
+            }
+        }
+        
+        function enableBatchSelection() {
+            const items = document.querySelectorAll('.coloring-item');
+            items.forEach(item => {
+                const completeBtn = item.querySelector('.complete-btn');
+                if (completeBtn) {
+                    // 替换单个完成按钮为选择器
+                    const x = completeBtn.getAttribute('data-x');
+                    const y = completeBtn.getAttribute('data-y');
+                    const pixelKey = `${x},${y}`;
+                    
+                    const selector = document.createElement('input');
+                    selector.type = 'checkbox';
+                    selector.className = 'batch-selector';
+                    selector.dataset.x = x;
+                    selector.dataset.y = y;
+                    selector.checked = selectedPixels.has(pixelKey);
+                    
+                    selector.addEventListener('change', function() {
+                        const pixelKey = `${this.dataset.x},${this.dataset.y}`;
+                        if (this.checked) {
+                            if (selectedPixels.size < 40) {
+                                selectedPixels.add(pixelKey);
+                                item.classList.add('selected');
+                            } else {
+                                this.checked = false;
+                                alert('最多只能选择40个像素');
+                            }
+                        } else {
+                            selectedPixels.delete(pixelKey);
+                            item.classList.remove('selected');
+                        }
+                        updateBatchUI();
+                    });
+                    
+                    completeBtn.replaceWith(selector);
+                }
+            });
+        }
+        
+        function disableBatchSelection() {
+            const items = document.querySelectorAll('.coloring-item');
+            items.forEach(item => {
+                const selector = item.querySelector('.batch-selector');
+                if (selector) {
+                    const x = selector.dataset.x;
+                    const y = selector.dataset.y;
+                    const color = selector.dataset.color;
+                    
+                    const completeBtn = document.createElement('button');
+                    completeBtn.className = 'btn complete-btn';
+                    completeBtn.textContent = '标记完成';
+                    completeBtn.setAttribute('data-x', x);
+                    completeBtn.setAttribute('data-y', y);
+                    completeBtn.setAttribute('data-color', color);
+                    
+                    completeBtn.addEventListener('click', function() {
+                        const x = this.getAttribute('data-x');
+                        const y = this.getAttribute('data-y');
+                        const color = this.getAttribute('data-color');
+                        markPixelComplete(x, y, color);
+                    });
+                    
+                    selector.replaceWith(completeBtn);
+                    item.classList.remove('selected');
+                }
+            });
+        }
+        
+        function updateSelectedCount() {
+            document.getElementById('selectedCount').textContent = selectedPixels.size;
+            document.getElementById('submitBatchBtn').textContent = `提交选中项 (${selectedPixels.size}/40)`;
+            document.getElementById('submitBatchBtn').disabled = selectedPixels.size === 0;
+        }
+        
+        async function submitBatch() {
+            if (selectedPixels.size === 0) {
+                alert('请先选择要标记完成的像素');
+                return;
+            }
+            
+            const pixels = Array.from(selectedPixels).map(pixelKey => {
+                const [x, y] = pixelKey.split(',');
+                return { x: parseInt(x), y: parseInt(y) };
+            });
+            
+            try {
+                const response = await fetch(`/api/space/${currentSpaceId}/batch_complete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ pixels })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    if (result.conflict_pixels && result.conflict_pixels.length > 0) {
+                        alert(`${result.message}\n冲突的像素: ${result.conflict_pixels.length}个`);
+                    } else {
+                        alert(result.message);
+                    }
+                    // 提交成功后退出批量模式并刷新数据
+                    cancelBatchMode();
+                    loadSpaceData();
+                } else {
+                    throw new Error(result.error || '批量提交失败');
+                }
+            } catch (error) {
+                console.error('批量提交错误:', error);
+                alert('批量提交失败: ' + error.message);
+            }
+        }
+        
+        function cancelBatchMode() {
+            isBatchMode = false;
+            selectedPixels.clear();
+            updateBatchUI();
+            disableBatchSelection();
         }
         
         // 定期刷新数据（每30秒）

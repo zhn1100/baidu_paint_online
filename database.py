@@ -63,6 +63,19 @@ class DatabaseManager:
             )
         ''')
         
+        # 批量提交记录表 - 记录批量操作（用于审计和性能优化）
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS batch_submissions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                space_id INTEGER,
+                username TEXT NOT NULL,
+                completed_pixels TEXT NOT NULL,  -- JSON格式存储完成的像素坐标数组
+                pixel_count INTEGER NOT NULL,
+                submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (space_id) REFERENCES spaces (id)
+            )
+        ''')
+        
         # 创建索引以提高查询性能
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_space_users ON space_users(space_id, username)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_user_completions ON user_completions(space_id, x, y)')
@@ -346,6 +359,77 @@ class DatabaseManager:
         conn.close()
         
         return archived_count
+    
+    def batch_mark_pixels_complete(self, space_id, username, pixels):
+        """批量标记像素为已完成"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        # 检查用户是否在空间中
+        role = self.get_user_role(space_id, username)
+        if not role:
+            conn.close()
+            return {'error': '用户不在空间中'}
+        
+        # 检查批量大小限制（最多40个）
+        if len(pixels) > 40:
+            conn.close()
+            return {'error': '批量提交超过40个像素限制'}
+        
+        # 使用事务确保原子性
+        conn.execute('BEGIN TRANSACTION')
+        
+        try:
+            completed_count = 0
+            conflict_pixels = []
+            
+            # 批量插入用户完成记录
+            for pixel in pixels:
+                x = pixel['x']
+                y = pixel['y']
+                
+                try:
+                    cursor.execute('''
+                        INSERT INTO user_completions (space_id, username, x, y)
+                        VALUES (?, ?, ?, ?)
+                    ''', (space_id, username, x, y))
+                    completed_count += 1
+                except sqlite3.IntegrityError:
+                    # 如果已经完成过，记录冲突但不中断
+                    conflict_pixels.append({'x': x, 'y': y})
+                    continue
+            
+            # 记录批量提交（用于审计）
+            if completed_count > 0:
+                cursor.execute('''
+                    INSERT INTO batch_submissions (space_id, username, completed_pixels, pixel_count)
+                    VALUES (?, ?, ?, ?)
+                ''', (space_id, username, json.dumps(pixels), completed_count))
+            
+            # 更新空间最后访问时间
+            cursor.execute('UPDATE spaces SET last_accessed = CURRENT_TIMESTAMP WHERE id = ?', (space_id,))
+            
+            conn.commit()
+            
+            result = {
+                'success': True,
+                'completed_count': completed_count,
+                'total_requested': len(pixels)
+            }
+            
+            if conflict_pixels:
+                result['conflict_pixels'] = conflict_pixels
+                result['message'] = f'成功完成{completed_count}个像素，{len(conflict_pixels)}个像素已被其他用户完成'
+            else:
+                result['message'] = f'成功完成{completed_count}个像素'
+            
+            return result
+            
+        except Exception as e:
+            conn.rollback()
+            return {'error': f'批量提交失败: {str(e)}'}
+        finally:
+            conn.close()
     
     def export_space_data(self, space_id, format_type='json'):
         """导出空间数据"""
