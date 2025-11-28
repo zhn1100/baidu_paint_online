@@ -22,33 +22,24 @@ class DatabaseManager:
             database_url = os.environ.get('DATABASE_URL')
             
             if database_url:
+                print(f"🔗 尝试使用 DATABASE_URL 连接: {database_url[:50]}...")
+                
                 # 如果是 DigitalOcean 的 ${db.DATABASE_URL} 格式，需要解析
                 if database_url.startswith('${db.'):
                     # 在 DigitalOcean 中，${db.DATABASE_URL} 会被自动替换为实际连接字符串
                     # 这里我们假设环境变量已经正确设置
                     database_url = os.environ.get('db.DATABASE_URL') or os.environ.get('DATABASE_URL')
+                    print(f"🔗 解析后的 DATABASE_URL: {database_url[:50]}...")
                 
-                if database_url and database_url.startswith('postgres://'):
-                    # 解析 PostgreSQL 连接字符串
-                    import urllib.parse
-                    result = urllib.parse.urlparse(database_url)
-                    username = result.username
-                    password = result.password
-                    database = result.path[1:]  # 去掉开头的 '/'
-                    hostname = result.hostname
-                    port = result.port or 5432
-                    
-                    conn = psycopg2.connect(
-                        host=hostname,
-                        port=port,
-                        database=database,
-                        user=username,
-                        password=password,
-                        sslmode='require'
-                    )
+                # 检查是否是 postgresql:// 或 postgres:// 格式
+                if database_url and (database_url.startswith('postgresql://') or database_url.startswith('postgres://')):
+                    # 直接使用 DATABASE_URL 连接（psycopg2 支持直接解析）
+                    conn = psycopg2.connect(database_url)
+                    print("✅ 使用 DATABASE_URL 连接成功")
                     return conn
             
             # 如果没有 DATABASE_URL，使用分开的环境变量
+            print("🔗 尝试使用分开的环境变量连接...")
             conn = psycopg2.connect(
                 host=os.environ.get('DB_HOST', 'localhost'),
                 port=int(os.environ.get('DB_PORT', '5432')),
@@ -57,10 +48,11 @@ class DatabaseManager:
                 password=os.environ.get('DB_PASSWORD', ''),
                 sslmode=os.environ.get('DB_SSLMODE', 'require')
             )
+            print("✅ 使用分开的环境变量连接成功")
             return conn
         except Exception as e:
-            print(f"Database connection error: {e}")
-            print(f"Available env vars: DB_HOST={os.environ.get('DB_HOST')}, DATABASE_URL={os.environ.get('DATABASE_URL')}")
+            print(f"❌ Database connection error: {e}")
+            print(f"🔍 Available env vars: DB_HOST={os.environ.get('DB_HOST')}, DATABASE_URL={os.environ.get('DATABASE_URL')}")
             raise
     
     def init_db(self):

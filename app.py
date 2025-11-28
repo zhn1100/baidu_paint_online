@@ -7,7 +7,7 @@ from datetime import timedelta
 from dotenv import load_dotenv
 
 # 加载.env文件中的环境变量（开发环境使用）
-load_dotenv()
+#load_dotenv()
 
 # 安全配置
 def get_secret_key():
@@ -31,13 +31,20 @@ app.config.update(
 )
 
 # 初始化管理器
-try:
-    db_manager = DatabaseManager()
-    image_processor = ImageProcessor()
-    print("✅ Database connection successful")
-except Exception as e:
-    print(f"❌ Database connection failed: {e}")
-    raise
+db_manager = None
+image_processor = ImageProcessor()
+
+def get_db_manager():
+    """延迟初始化数据库管理器"""
+    global db_manager
+    if db_manager is None:
+        try:
+            db_manager = DatabaseManager()
+            print("✅ Database connection successful")
+        except Exception as e:
+            print(f"❌ Database connection failed: {e}")
+            raise
+    return db_manager
 
 @app.route('/')
 def index():
@@ -47,13 +54,14 @@ def index():
 @app.route('/space/<int:space_id>')
 def space_detail(space_id):
     """空间详情页面"""
-    space_info = db_manager.get_space_info(space_id)
+    db = get_db_manager()
+    space_info = db.get_space_info(space_id)
     if not space_info:
         return render_template('error.html', message='空间不存在')
     
     # 检查用户是否在空间中
     username = session.get('username')
-    user_role = db_manager.get_user_role(space_id, username) if username else None
+    user_role = db.get_user_role(space_id, username) if username else None
     
     if not user_role:
         # 用户未加入空间，重定向到加入页面
@@ -64,7 +72,8 @@ def space_detail(space_id):
 @app.route('/join/<join_key>')
 def join_space_page(join_key):
     """加入空间页面"""
-    space_info = db_manager.get_space_by_join_key(join_key)
+    db = get_db_manager()
+    space_info = db.get_space_by_join_key(join_key)
     if not space_info:
         return render_template('error.html', message='无效的加入密钥')
     return render_template('join.html', join_key=join_key, space_name=space_info['name'])
@@ -73,6 +82,7 @@ def join_space_page(join_key):
 def create_space():
     """创建新空间"""
     try:
+        db = get_db_manager()
         if 'image' not in request.files:
             return jsonify({'error': '没有选择文件'}), 400
         
@@ -95,7 +105,7 @@ def create_space():
         process_result = image_processor.process_image_for_space(file, grid_size, start_x, start_y)
         
         # 创建空间
-        space_data = db_manager.create_space(
+        space_data = db.create_space(
             name=name,
             description=description,
             creator_username=creator_username,
@@ -126,13 +136,14 @@ def create_space():
 def join_space():
     """加入空间"""
     try:
+        db = get_db_manager()
         join_key = request.json.get('join_key', '').strip()
         username = request.json.get('username', '').strip()
         
         if not join_key or not username:
             return jsonify({'error': '加入密钥和用户名不能为空'}), 400
         
-        result = db_manager.join_space(join_key, username)
+        result = db.join_space(join_key, username)
         
         if 'error' in result:
             return jsonify({'error': result['error']}), 400
@@ -154,15 +165,16 @@ def join_space():
 def get_space_data(space_id):
     """获取空间数据"""
     try:
+        db = get_db_manager()
         username = session.get('username')
         if not username:
             return jsonify({'error': '未登录'}), 401
         
-        user_role = db_manager.get_user_role(space_id, username)
+        user_role = db.get_user_role(space_id, username)
         if not user_role:
             return jsonify({'error': '无权访问此空间'}), 403
         
-        space_data = db_manager.get_space_pixel_data(space_id)
+        space_data = db.get_space_pixel_data(space_id)
         if not space_data:
             return jsonify({'error': '空间不存在'}), 404
         
@@ -184,6 +196,7 @@ def get_space_data(space_id):
 def mark_pixel_complete(space_id):
     """标记单个像素为已完成"""
     try:
+        db = get_db_manager()
         username = session.get('username')
         if not username:
             return jsonify({'error': '未登录'}), 401
@@ -195,7 +208,7 @@ def mark_pixel_complete(space_id):
         if x is None or y is None:
             return jsonify({'error': '缺少必要参数'}), 400
         
-        result = db_manager.mark_pixel_complete(space_id, username, x, y)
+        result = db.mark_pixel_complete(space_id, username, x, y)
         
         if 'error' in result:
             return jsonify({'error': result['error']}), 400
@@ -209,6 +222,7 @@ def mark_pixel_complete(space_id):
 def batch_mark_pixels_complete(space_id):
     """批量标记像素为已完成"""
     try:
+        db = get_db_manager()
         username = session.get('username')
         if not username:
             return jsonify({'error': '未登录'}), 401
@@ -224,7 +238,7 @@ def batch_mark_pixels_complete(space_id):
             if 'x' not in pixel or 'y' not in pixel:
                 return jsonify({'error': '像素数据格式错误'}), 400
         
-        result = db_manager.batch_mark_pixels_complete(space_id, username, pixels)
+        result = db.batch_mark_pixels_complete(space_id, username, pixels)
         
         if 'error' in result:
             return jsonify({'error': result['error']}), 400
@@ -238,20 +252,21 @@ def batch_mark_pixels_complete(space_id):
 def get_space_stats(space_id):
     """获取空间统计信息"""
     try:
+        db = get_db_manager()
         username = session.get('username')
         if not username:
             return jsonify({'error': '未登录'}), 401
         
-        user_role = db_manager.get_user_role(space_id, username)
+        user_role = db.get_user_role(space_id, username)
         if not user_role:
             return jsonify({'error': '无权访问此空间'}), 403
         
-        space_info = db_manager.get_space_info(space_id)
+        space_info = db.get_space_info(space_id)
         if not space_info:
             return jsonify({'error': '空间不存在'}), 404
         
         # 获取用户完成统计 - 使用PostgreSQL语法
-        conn = db_manager.get_connection()
+        conn = db.get_connection()
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -287,16 +302,17 @@ def get_space_stats(space_id):
 def export_space(space_id):
     """导出空间数据"""
     try:
+        db = get_db_manager()
         username = session.get('username')
         if not username:
             return jsonify({'error': '未登录'}), 401
         
-        user_role = db_manager.get_user_role(space_id, username)
+        user_role = db.get_user_role(space_id, username)
         if user_role != 'creator':
             return jsonify({'error': '只有创建者可以导出数据'}), 403
         
         format_type = request.args.get('format', 'json')
-        export_data = db_manager.export_space_data(space_id, format_type)
+        export_data = db.export_space_data(space_id, format_type)
         
         if not export_data:
             return jsonify({'error': '导出失败'}), 500
@@ -310,8 +326,9 @@ def export_space(space_id):
 def archive_old_spaces():
     """维护任务：归档旧空间"""
     try:
+        db = get_db_manager()
         # 在生产环境中应该添加认证
-        archived_count = db_manager.archive_old_spaces()
+        archived_count = db.archive_old_spaces()
         return jsonify({'archived_count': archived_count})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -322,6 +339,6 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-if __name__ == '__main__':
+#if __name__ == '__main__':
     # 生产环境应该使用 gunicorn 或其他 WSGI 服务器
-    app.run(debug=False, host='0.0.0.0', port=5000)
+    #app.run(debug=False, host='0.0.0.0', port=5000)
