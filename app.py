@@ -1,17 +1,17 @@
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for
-from database import DatabaseManager
+from database_postgres import DatabaseManager
 from image_processor import ImageProcessor
 import os
 import secrets
-from datetime import  timedelta
+from datetime import timedelta
 from dotenv import load_dotenv
 
-# 加载.env文件中的环境变量
+# 加载.env文件中的环境变量（开发环境使用）
 load_dotenv()
 
 # 安全配置
 def get_secret_key():
-    """从环境变量获取密钥，如果没有则生成一个安全的随机密钥"""
+    """从环境变量获取密钥"""
     secret_key = os.environ.get('SECRET_KEY')
     if not secret_key:
         # 生成安全的随机密钥（仅用于开发环境）
@@ -31,8 +31,13 @@ app.config.update(
 )
 
 # 初始化管理器
-db_manager = DatabaseManager()
-image_processor = ImageProcessor()
+try:
+    db_manager = DatabaseManager()
+    image_processor = ImageProcessor()
+    print("✅ Database connection successful")
+except Exception as e:
+    print(f"❌ Database connection failed: {e}")
+    raise
 
 @app.route('/')
 def index():
@@ -245,18 +250,19 @@ def get_space_stats(space_id):
         if not space_info:
             return jsonify({'error': '空间不存在'}), 404
         
-        # 获取用户完成统计
-        conn = db_manager._get_connection()
+        # 获取用户完成统计 - 使用PostgreSQL语法
+        conn = db_manager.get_connection()
         cursor = conn.cursor()
         
         cursor.execute('''
             SELECT username, COUNT(*) as pixel_count 
             FROM user_completions 
-            WHERE space_id = ? 
+            WHERE space_id = %s 
             GROUP BY username
         ''', (space_id,))
         
         user_stats = cursor.fetchall()
+        cursor.close()
         conn.close()
         
         stats = {
@@ -316,5 +322,6 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-#if __name__ == '__main__':
-    #app.run(debug=False, host='0.0.0.0', port=5000)
+if __name__ == '__main__':
+    # 生产环境应该使用 gunicorn 或其他 WSGI 服务器
+    app.run(debug=False, host='0.0.0.0', port=5000)

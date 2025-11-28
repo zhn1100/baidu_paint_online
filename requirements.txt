@@ -1,5 +1,6 @@
 Flask
 Pillow
+psycopg2-binary
 python-dotenv
 numpy
 gunicorn
