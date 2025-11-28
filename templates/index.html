@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>像素图像处理工具</title>
+    <title>协作像素绘画 - 创建和加入绘画空间</title>
     <style>
         * {
             margin: 0;
@@ -30,32 +30,40 @@
         .header {
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             color: white;
-            padding: 30px;
+            padding: 40px 30px;
             text-align: center;
         }
         
         .header h1 {
-            font-size: 2.5em;
+            font-size: 3em;
             margin-bottom: 10px;
         }
         
         .header p {
-            font-size: 1.1em;
+            font-size: 1.2em;
             opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
         }
         
         .content {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 30px;
-            padding: 30px;
+            padding: 40px;
         }
         
-        .upload-section, .result-section {
+        .section {
             background: #f8f9fa;
-            padding: 25px;
+            padding: 30px;
             border-radius: 10px;
             border: 2px dashed #dee2e6;
+        }
+        
+        .section h2 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.8em;
         }
         
         .form-group {
@@ -69,7 +77,7 @@
             color: #495057;
         }
         
-        input[type="number"], input[type="file"] {
+        input[type="text"], input[type="number"], input[type="file"] {
             width: 100%;
             padding: 12px;
             border: 2px solid #e9ecef;
@@ -78,9 +86,14 @@
             transition: border-color 0.3s;
         }
         
-        input[type="number"]:focus, input[type="file"]:focus {
+        input[type="text"]:focus, input[type="number"]:focus, input[type="file"]:focus {
             outline: none;
             border-color: #4facfe;
+        }
+        
+        small {
+            color: #6c757d;
+            font-size: 0.85em;
         }
         
         .btn {
@@ -114,77 +127,6 @@
         
         .btn-secondary:hover {
             background: #5a6268;
-        }
-        
-        .image-preview {
-            margin-top: 20px;
-            text-align: center;
-        }
-        
-        .image-preview img {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .result-content {
-            display: none;
-        }
-        
-        .coloring-list {
-            max-height: 400px;
-            overflow-y: auto;
-            margin-top: 20px;
-        }
-        
-        .coloring-item {
-            background: white;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            border-left: 4px solid #4facfe;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .coloring-item.completed {
-            opacity: 0.6;
-            text-decoration: line-through;
-            border-left-color: #28a745;
-        }
-        
-        .color-indicator {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            margin-right: 10px;
-            vertical-align: middle;
-            border: 2px solid #ddd;
-        }
-        
-        .pixel-info {
-            color: #6c757d;
-            font-size: 0.9em;
-        }
-        
-        .palette {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        .palette-color {
-            width: 30px;
-            height: 30px;
-            border-radius: 6px;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            cursor: pointer;
         }
         
         .loading {
@@ -226,35 +168,66 @@
             border: 1px solid #bee5eb;
         }
         
-        .processed-image-section {
+        .image-preview {
+            margin-top: 20px;
             text-align: center;
-            margin-bottom: 20px;
         }
         
-        .processed-image {
+        .image-preview img {
             max-width: 100%;
-            max-height: 300px;
+            max-height: 200px;
             border-radius: 8px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            margin-bottom: 15px;
         }
         
-        .progress-info {
-            background: #e9ecef;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            text-align: center;
+        .join-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
         
-        .action-buttons {
+        .join-form {
             display: flex;
             gap: 10px;
-            margin-top: 15px;
         }
         
-        .action-buttons .btn {
+        .join-form input {
             flex: 1;
+        }
+        
+        .join-form .btn {
+            width: auto;
+            min-width: 120px;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .feature {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .feature-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .feature h3 {
+            color: #495057;
+            margin-bottom: 10px;
+        }
+        
+        .feature p {
+            color: #6c757d;
+            font-size: 0.9em;
         }
         
         @media (max-width: 768px) {
@@ -263,11 +236,15 @@
             }
             
             .header h1 {
-                font-size: 2em;
+                font-size: 2.2em;
             }
             
-            .action-buttons {
+            .join-form {
                 flex-direction: column;
+            }
+            
+            .join-form .btn {
+                width: 100%;
             }
         }
     </style>
@@ -275,23 +252,39 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎨 像素图像处理工具</h1>
-            <p>上传图片，生成像素化版本和填色列表</p>
+            <h1>🎨 协作像素绘画</h1>
+            <p>创建和加入绘画空间，与朋友一起完成像素艺术作品</p>
         </div>
         
         <div class="content">
-            <div class="upload-section">
-                <h2>上传图片</h2>
-                <form id="uploadForm" enctype="multipart/form-data">
+            <div class="section">
+                <h2>创建新空间</h2>
+                <form id="createSpaceForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="name">空间名称</label>
+                        <input type="text" id="name" name="name" placeholder="输入空间名称" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">空间描述</label>
+                        <input type="text" id="description" name="description" placeholder="描述这个空间的绘画目标">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="username">创建者用户名</label>
+                        <input type="text" id="username" name="username" placeholder="您的用户名" required>
+                    </div>
+                    
                     <div class="form-group">
                         <label for="image">选择图片文件</label>
                         <input type="file" id="image" name="image" accept="image/*" required>
+                        <small>支持 JPG、PNG 等常见图片格式</small>
                     </div>
                     
                     <div class="form-group">
                         <label for="grid_size">网格大小 (像素)</label>
-                        <input type="number" id="grid_size" name="grid_size" value="128" min="8" max="512" required>
-                        <small>设置像素化后的宽度像素数</small>
+                        <input type="number" id="grid_size" name="grid_size" value="128" min="16" max="512" required>
+                        <small>设置像素化后的宽度像素数，建议 64-256</small>
                     </div>
                     
                     <div class="form-group">
@@ -306,86 +299,86 @@
                         <small>向右为正方向</small>
                     </div>
                     
-                    <button type="submit" class="btn" id="processBtn">
-                        处理图片
+                    <button type="submit" class="btn" id="createBtn">
+                        创建空间
                     </button>
                     
-                    <div class="form-group" style="margin-top: 20px;">
-                        <button type="button" class="btn btn-secondary" id="continueBtn">
-                            继续上次任务
-                        </button>
-                        <small>加载最近一次保存的进度</small>
+                    <div class="image-preview" id="imagePreview">
+                        <p>图片预览将显示在这里</p>
+                    </div>
+                    
+                    <div class="loading" id="createLoading">
+                        <div class="spinner"></div>
+                        <p>正在创建空间...</p>
+                    </div>
+                    
+                    <div class="error" id="createError" style="display: none;">
+                        <!-- 错误信息将在这里显示 -->
+                    </div>
+                    
+                    <div class="success" id="createSuccess" style="display: none;">
+                        <!-- 成功信息将在这里显示 -->
                     </div>
                 </form>
-                
-                <div class="image-preview" id="imagePreview">
-                    <p>图片预览将显示在这里</p>
-                </div>
             </div>
             
-            <div class="result-section">
-                <h2>处理结果</h2>
-                
-                <div class="loading" id="loading">
-                    <div class="spinner"></div>
-                    <p>正在处理图片...</p>
-                </div>
-                
-                <div class="result-content" id="resultContent">
-                    <div class="success" id="successMessage">
-                        图片处理成功！
-                    </div>
-                    
-                    <div class="processed-image-section">
-                        <h3>处理后的图像</h3>
-                        <img id="processedImage" class="processed-image" alt="处理后的图像">
-                        <div class="action-buttons">
-                            <button class="btn" id="downloadBtn">下载图像</button>
-                            <button class="btn btn-secondary" id="clearCompletedBtn">清除已完成</button>
-                        </div>
-                    </div>
-                    
-                    <div class="progress-info">
-                        <p>总像素数: <span id="totalPixels">0</span></p>
-                        <p>已完成: <span id="completedPixels">0</span></p>
-                        <p>进度: <span id="progressPercentage">0%</span></p>
-                    </div>
-                    
+            <div class="section">
+                <h2>加入现有空间</h2>
+                <div class="join-section">
                     <div class="form-group">
-                        <label>图像信息</label>
-                        <div id="imageInfo">
-                            <p>网格尺寸: <span id="gridInfo">-</span></p>
-                            <p>图像尺寸: <span id="imageSize">-</span></p>
+                        <label for="joinKey">加入密钥</label>
+                        <div class="join-form">
+                            <input type="text" id="joinKey" placeholder="输入空间加入密钥">
+                            <button class="btn" id="joinBtn">加入</button>
                         </div>
+                        <small>向空间创建者获取加入密钥</small>
                     </div>
                     
-                    <div class="form-group">
-                        <label>颜色调色板</label>
-                        <div class="palette" id="colorPalette">
-                            <!-- 颜色块将在这里动态生成 -->
-                        </div>
+                    <div class="loading" id="joinLoading" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>正在加入空间...</p>
                     </div>
                     
-                    <div class="form-group">
-                        <label>填色列表 (点击标记完成)</label>
-                        <div class="coloring-list" id="coloringList">
-                            <!-- 填色项目将在这里动态生成 -->
-                        </div>
+                    <div class="error" id="joinError" style="display: none;">
+                        <!-- 错误信息将在这里显示 -->
+                    </div>
+                    
+                    <div class="success" id="joinSuccess" style="display: none;">
+                        <!-- 成功信息将在这里显示 -->
                     </div>
                 </div>
                 
-                <div class="error" id="errorMessage" style="display: none;">
-                    <!-- 错误信息将在这里显示 -->
+                <div class="features">
+                    <div class="feature">
+                        <div class="feature-icon">👥</div>
+                        <h3>多人协作</h3>
+                        <p>与朋友实时协作完成绘画</p>
+                    </div>
+                    
+                    <div class="feature">
+                        <div class="feature-icon">🎯</div>
+                        <h3>像素精准</h3>
+                        <p>32种固定颜色，确保一致性</p>
+                    </div>
+                    
+                    <div class="feature">
+                        <div class="feature-icon">⏰</div>
+                        <h3>自动归档</h3>
+                        <p>2天无活动自动归档空间</p>
+                    </div>
+                    
+                    <div class="feature">
+                        <div class="feature-icon">📊</div>
+                        <h3>进度追踪</h3>
+                        <p>实时查看完成度和用户贡献</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        let currentData = null;
-        let currentImageHash = null;
-        let saveTimeout = null;
-        
+        // 图片预览功能
         document.getElementById('image').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -398,24 +391,25 @@
             }
         });
         
-        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+        // 创建空间表单提交
+        document.getElementById('createSpaceForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const formData = new FormData(this);
-            const processBtn = document.getElementById('processBtn');
-            const loading = document.getElementById('loading');
-            const resultContent = document.getElementById('resultContent');
-            const errorMessage = document.getElementById('errorMessage');
+            const createBtn = document.getElementById('createBtn');
+            const loading = document.getElementById('createLoading');
+            const errorDiv = document.getElementById('createError');
+            const successDiv = document.getElementById('createSuccess');
             
             // 显示加载状态
-            processBtn.disabled = true;
-            processBtn.textContent = '处理中...';
+            createBtn.disabled = true;
+            createBtn.textContent = '创建中...';
             loading.style.display = 'block';
-            resultContent.style.display = 'none';
-            errorMessage.style.display = 'none';
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
             
             try {
-                const response = await fetch('/upload', {
+                const response = await fetch('/api/create_space', {
                     method: 'POST',
                     body: formData
                 });
@@ -423,259 +417,72 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    currentData = data;
-                    // 设置图像哈希
-                    if (data.from_saved && data.image_hash) {
-                        // 如果是加载保存的进度，使用后端返回的哈希
-                        currentImageHash = data.image_hash;
-                    } else {
-                        // 如果是新处理，使用前端生成的哈希
-                        const file = document.getElementById('image').files[0];
-                        if (file) {
-                            const fileContent = await readFileAsArrayBuffer(file);
-                            currentImageHash = await generateImageHash(fileContent);
-                        }
-                    }
-                    // 显示成功结果
-                    displayResults(data);
-                    resultContent.style.display = 'block';
+                    successDiv.innerHTML = `
+                        空间创建成功！<br>
+                        加入密钥: <strong>${data.join_key}</strong><br>
+                        正在跳转到空间页面...
+                    `;
+                    successDiv.style.display = 'block';
+                    
+                    // 跳转到空间页面
+                    setTimeout(() => {
+                        window.location.href = `/space/${data.space_id}`;
+                    }, 2000);
                 } else {
-                    throw new Error(data.error || '处理失败');
+                    throw new Error(data.error || '创建失败');
                 }
             } catch (error) {
-                errorMessage.textContent = '错误: ' + error.message;
-                errorMessage.style.display = 'block';
-                console.error('处理错误:', error);
+                errorDiv.textContent = '错误: ' + error.message;
+                errorDiv.style.display = 'block';
+                console.error('创建错误:', error);
             } finally {
                 // 恢复按钮状态
-                processBtn.disabled = false;
-                processBtn.textContent = '处理图片';
+                createBtn.disabled = false;
+                createBtn.textContent = '创建空间';
                 loading.style.display = 'none';
             }
         });
         
-        function readFileAsArrayBuffer(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    resolve(e.target.result);
-                };
-                reader.onerror = reject;
-                reader.readAsArrayBuffer(file);
-            });
-        }
-        
-        async function generateImageHash(arrayBuffer) {
-            // 使用简单的哈希函数替代MD5，避免浏览器兼容性问题
-            const data = new Uint8Array(arrayBuffer);
-            let hash = 0;
+        // 加入空间功能
+        document.getElementById('joinBtn').addEventListener('click', async function() {
+            const joinKey = document.getElementById('joinKey').value.trim();
+            const joinBtn = document.getElementById('joinBtn');
+            const loading = document.getElementById('joinLoading');
+            const errorDiv = document.getElementById('joinError');
+            const successDiv = document.getElementById('joinSuccess');
             
-            // 使用简单的FNV-1a哈希算法
-            for (let i = 0; i < data.length; i++) {
-                hash = ((hash << 5) - hash) + data[i];
-                hash = hash & hash; // 转换为32位整数
-            }
-            
-            // 转换为16进制字符串
-            return Math.abs(hash).toString(16).padStart(8, '0');
-        }
-        
-        function displayResults(data) {
-            // 显示处理后的图像
-            const processedImage = document.getElementById('processedImage');
-            processedImage.src = `data:image/png;base64,${data.processed_image}`;
-            
-            // 显示图像信息
-            document.getElementById('gridInfo').textContent = 
-                `${data.grid_width} × ${data.grid_height}`;
-            document.getElementById('imageSize').textContent = 
-                `${data.image_size[0]} × ${data.image_size[1]}`;
-            
-            // 显示像素统计
-            document.getElementById('totalPixels').textContent = data.total_pixels;
-            updateProgress();
-            
-            // 显示颜色调色板
-            const paletteContainer = document.getElementById('colorPalette');
-            paletteContainer.innerHTML = '';
-            data.palette.forEach(color => {
-                const colorDiv = document.createElement('div');
-                colorDiv.className = 'palette-color';
-                colorDiv.style.backgroundColor = color;
-                colorDiv.title = color;
-                paletteContainer.appendChild(colorDiv);
-            });
-            
-            // 显示填色列表
-            const coloringList = document.getElementById('coloringList');
-            coloringList.innerHTML = '';
-            
-            if (data.coloring_list.length === 0) {
-                coloringList.innerHTML = '<p>没有找到需要填色的区域</p>';
+            if (!joinKey) {
+                errorDiv.textContent = '请输入加入密钥';
+                errorDiv.style.display = 'block';
                 return;
             }
             
-            data.coloring_list.forEach((item, index) => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = `coloring-item ${item.completed ? 'completed' : ''}`;
-                itemDiv.dataset.index = index;
-                
-                itemDiv.innerHTML = `
-                    <div>
-                        <span class="color-indicator" style="background-color: ${item.color}"></span>
-                        <strong>像素 (${item.display_x}, ${item.display_y})</strong>
-                        <span class="pixel-info">颜色: ${item.color} (${item.color_position})</span>
-                    </div>
-                    <div>
-                        <input type="checkbox" ${item.completed ? 'checked' : ''} class="completion-checkbox">
-                    </div>
-                `;
-                
-                // 添加点击事件
-                itemDiv.addEventListener('click', function(e) {
-                    if (!e.target.classList.contains('completion-checkbox')) {
-                        const checkbox = this.querySelector('.completion-checkbox');
-                        checkbox.checked = !checkbox.checked;
-                        updatePixelCompletion(index, checkbox.checked);
-                    }
-                });
-                
-                // 复选框事件
-                const checkbox = itemDiv.querySelector('.completion-checkbox');
-                checkbox.addEventListener('change', function(e) {
-                    e.stopPropagation();
-                    updatePixelCompletion(index, this.checked);
-                });
-                
-                coloringList.appendChild(itemDiv);
-            });
-        }
-        
-        function updatePixelCompletion(index, completed) {
-            if (currentData && currentData.coloring_list[index]) {
-                currentData.coloring_list[index].completed = completed;
-                updateProgress();
-                
-                // 更新UI状态
-                const itemDiv = document.querySelector(`.coloring-item[data-index="${index}"]`);
-                if (itemDiv) {
-                    if (completed) {
-                        itemDiv.classList.add('completed');
-                    } else {
-                        itemDiv.classList.remove('completed');
-                    }
-                }
-                
-                // 自动保存进度
-                scheduleSaveProgress();
-            }
-        }
-        
-        function scheduleSaveProgress() {
-            // 清除之前的定时器
-            if (saveTimeout) {
-                clearTimeout(saveTimeout);
-            }
-            
-            // 设置新的定时器，延迟500ms保存，避免频繁请求
-            saveTimeout = setTimeout(saveProgress, 500);
-        }
-        
-        async function saveProgress() {
-            if (!currentData || !currentImageHash) return;
-            
-            try {
-                const response = await fetch('/save_progress', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        image_hash: currentImageHash,
-                        coloring_list: currentData.coloring_list
-                    })
-                });
-                
-                const result = await response.json();
-                if (!response.ok) {
-                    console.error('保存失败:', result.error);
-                } else {
-                    console.log('进度已保存');
-                }
-            } catch (error) {
-                console.error('保存错误:', error);
-            }
-        }
-        
-        function updateProgress() {
-            if (!currentData) return;
-            
-            const completedCount = currentData.coloring_list.filter(item => item.completed).length;
-            const totalCount = currentData.total_pixels;
-            const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-            
-            document.getElementById('completedPixels').textContent = completedCount;
-            document.getElementById('progressPercentage').textContent = `${percentage}%`;
-        }
-        
-        // 下载图像功能
-        document.getElementById('downloadBtn').addEventListener('click', function() {
-            if (currentData && currentData.processed_image) {
-                const link = document.createElement('a');
-                link.href = `data:image/png;base64,${currentData.processed_image}`;
-                link.download = 'pixelated_image.png';
-                link.click();
-            }
-        });
-        
-        // 继续上次任务功能
-        document.getElementById('continueBtn').addEventListener('click', async function() {
-            const continueBtn = document.getElementById('continueBtn');
-            const loading = document.getElementById('loading');
-            const resultContent = document.getElementById('resultContent');
-            const errorMessage = document.getElementById('errorMessage');
-            
             // 显示加载状态
-            continueBtn.disabled = true;
-            continueBtn.textContent = '加载中...';
+            joinBtn.disabled = true;
+            joinBtn.textContent = '加入中...';
             loading.style.display = 'block';
-            resultContent.style.display = 'none';
-            errorMessage.style.display = 'none';
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
             
             try {
-                const response = await fetch('/latest_progress');
-                const data = await response.json();
-                
-                if (response.ok) {
-                    currentData = data;
-                    currentImageHash = data.image_hash;
-                    // 显示成功结果
-                    displayResults(data);
-                    resultContent.style.display = 'block';
-                } else {
-                    throw new Error(data.error || '加载失败');
-                }
+                // 首先跳转到加入页面，让用户输入用户名
+                window.location.href = `/join/${joinKey}`;
             } catch (error) {
-                errorMessage.textContent = '错误: ' + error.message;
-                errorMessage.style.display = 'block';
-                console.error('加载错误:', error);
+                errorDiv.textContent = '错误: ' + error.message;
+                errorDiv.style.display = 'block';
+                console.error('加入错误:', error);
             } finally {
                 // 恢复按钮状态
-                continueBtn.disabled = false;
-                continueBtn.textContent = '继续上次任务';
+                joinBtn.disabled = false;
+                joinBtn.textContent = '加入';
                 loading.style.display = 'none';
             }
         });
         
-        // 清除已完成功能
-        document.getElementById('clearCompletedBtn').addEventListener('click', function() {
-            if (currentData) {
-                // 过滤掉已完成的像素
-                currentData.coloring_list = currentData.coloring_list.filter(item => !item.completed);
-                currentData.total_pixels = currentData.coloring_list.length;
-                
-                // 重新显示填色列表
-                displayResults(currentData);
+        // 按Enter键加入空间
+        document.getElementById('joinKey').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('joinBtn').click();
             }
         });
     </script>

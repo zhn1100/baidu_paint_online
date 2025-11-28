@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加入空间 - 协作像素绘画</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .space-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .space-info h2 {
+            color: #495057;
+            margin-bottom: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 172, 254, 0.3);
+        }
+        
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4facfe;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid #f5c6cb;
+            display: none;
+        }
+        
+        .success {
+            background: #d1edff;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid #bee5eb;
+            display: none;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .back-link a {
+            color: #4facfe;
+            text-decoration: none;
+        }
+        
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 加入空间</h1>
+            <p>输入用户名加入协作绘画</p>
+        </div>
+        
+        <div class="content">
+            <div class="space-info">
+                <h2>{{ space_name }}</h2>
+                <p>加入密钥: <strong>{{ join_key }}</strong></p>
+            </div>
+            
+            <div class="form-group">
+                <label for="username">您的用户名</label>
+                <input type="text" id="username" placeholder="输入您的用户名" required>
+            </div>
+            
+            <button class="btn" id="joinBtn">
+                加入空间
+            </button>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>正在加入空间...</p>
+            </div>
+            
+            <div class="error" id="errorMessage">
+                <!-- 错误信息将在这里显示 -->
+            </div>
+            
+            <div class="success" id="successMessage">
+                <!-- 成功信息将在这里显示 -->
+            </div>
+            
+            <div class="back-link">
+                <a href="/">← 返回首页</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const joinKey = '{{ join_key }}';
+        
+        document.getElementById('joinBtn').addEventListener('click', async function() {
+            const username = document.getElementById('username').value.trim();
+            const joinBtn = document.getElementById('joinBtn');
+            const loading = document.getElementById('loading');
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            
+            if (!username) {
+                errorDiv.textContent = '请输入用户名';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            // 显示加载状态
+            joinBtn.disabled = true;
+            joinBtn.textContent = '加入中...';
+            loading.style.display = 'block';
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/join_space', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        join_key: joinKey,
+                        username: username
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    successDiv.textContent = `成功加入空间！正在跳转...`;
+                    successDiv.style.display = 'block';
+                    
+                    // 跳转到空间页面
+                    setTimeout(() => {
+                        window.location.href = `/space/${data.space_id}`;
+                    }, 1000);
+                } else {
+                    throw new Error(data.error || '加入失败');
+                }
+            } catch (error) {
+                errorDiv.textContent = '错误: ' + error.message;
+                errorDiv.style.display = 'block';
+                console.error('加入错误:', error);
+            } finally {
+                // 恢复按钮状态
+                joinBtn.disabled = false;
+                joinBtn.textContent = '加入空间';
+                loading.style.display = 'none';
+            }
+        });
+        
+        // 按Enter键加入空间
+        document.getElementById('username').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('joinBtn').click();
+            }
+        });
+    </script>
+</body>
+</html>

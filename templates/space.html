@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ space_info.name }} - 协作像素绘画</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .space-info h1 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+        
+        .space-info p {
+            opacity: 0.9;
+            font-size: 1em;
+        }
+        
+        .user-info {
+            text-align: right;
+        }
+        
+        .user-info p {
+            margin-bottom: 5px;
+        }
+        
+        .btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            padding: 30px;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .image-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .processed-image {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .coloring-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .coloring-section h3 {
+            margin-bottom: 15px;
+            color: #495057;
+        }
+        
+        .coloring-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            background: white;
+        }
+        
+        .coloring-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .coloring-item:last-child {
+            border-bottom: none;
+        }
+        
+        .color-indicator {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            vertical-align: middle;
+            border: 2px solid #ddd;
+        }
+        
+        .pixel-info {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .info-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .info-card h3 {
+            margin-bottom: 15px;
+            color: #495057;
+        }
+        
+        .progress-info {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            transition: width 0.3s ease;
+        }
+        
+        .users-list {
+            list-style: none;
+        }
+        
+        .user-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .user-item:last-child {
+            border-bottom: none;
+        }
+        
+        .user-role {
+            background: #4facfe;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+        
+        .user-role.creator {
+            background: #ff6b6b;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .action-buttons .btn {
+            flex: 1;
+            text-align: center;
+            background: #4facfe;
+            color: white;
+            border: none;
+            padding: 10px;
+        }
+        
+        .action-buttons .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .complete-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin-left: 10px;
+            transition: background 0.3s;
+        }
+        
+        .complete-btn:hover {
+            background: #218838;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .status-badge.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-badge.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4facfe;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid #f5c6cb;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
+            }
+            
+            .user-info {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="space-info">
+                <h1>{{ space_info.name }}</h1>
+                <p>{{ space_info.description }}</p>
+                <p>加入密钥: <strong>{{ space_info.join_key }}</strong></p>
+            </div>
+            <div class="user-info">
+                <p>欢迎, <strong>{{ username }}</strong>!</p>
+                <p>角色: <span class="user-role {{ user_role }}">{{ user_role }}</span></p>
+                <button class="btn" id="refreshBtn">刷新</button>
+                <a href="/logout" class="btn">退出</a>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="main-content">
+                <div class="image-section">
+                    <h3>参考图像</h3>
+                    <img id="processedImage" class="processed-image" 
+                         src="data:image/png;base64,{{ space_info.processed_image_base64 }}" 
+                         alt="处理后的图像">
+                </div>
+                
+                <div class="coloring-section">
+                    <h3>填色列表</h3>
+                    <div class="coloring-list" id="coloringList">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <p>加载中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar">
+                <div class="info-card">
+                    <h3>进度统计</h3>
+                    <div class="progress-info" id="progressInfo">
+                        <p>总像素数: <span id="totalPixels">0</span></p>
+                        <p>已完成: <span id="completedPixels">0</span></p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                        </div>
+                        <p>完成度: <span id="progressPercentage">0%</span></p>
+                    </div>
+                </div>
+                
+                <div class="info-card">
+                    <h3>空间成员 ({{ space_info.users|length }})</h3>
+                    <ul class="users-list">
+                        {% for user in space_info.users %}
+                        <li class="user-item">
+                            <span>{{ user.username }}</span>
+                            <span class="user-role {{ user.role }}">{{ user.role }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                {% if user_role == 'creator' %}
+                <div class="info-card">
+                    <h3>空间管理</h3>
+                    <div class="action-buttons">
+                        <button class="btn" id="exportBtn">导出数据</button>
+                        <button class="btn btn-secondary" id="statsBtn">查看统计</button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSpaceId = "{{ space_info.id }}";
+        
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSpaceData();
+            setupEventListeners();
+        });
+        
+        function setupEventListeners() {
+            // 刷新按钮
+            document.getElementById('refreshBtn').addEventListener('click', loadSpaceData);
+            
+            // 导出按钮（仅创建者）
+            const exportBtn = document.getElementById('exportBtn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', exportSpaceData);
+            }
+            
+            // 统计按钮（仅创建者）
+            const statsBtn = document.getElementById('statsBtn');
+            if (statsBtn) {
+                statsBtn.addEventListener('click', showStats);
+            }
+        }
+        
+        async function loadSpaceData() {
+            try {
+                const response = await fetch(`/api/space/${currentSpaceId}/data`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayColoringList(data.pixels);
+                    updateProgress(data.completed_pixels, data.total_pixels);
+                } else {
+                    throw new Error(data.error || '加载失败');
+                }
+            } catch (error) {
+                console.error('加载错误:', error);
+                showError('加载空间数据失败: ' + error.message);
+            }
+        }
+        
+        function displayColoringList(pixels) {
+            const container = document.getElementById('coloringList');
+            container.innerHTML = '';
+            
+            if (pixels.length === 0) {
+                container.innerHTML = '<p>没有像素数据</p>';
+                return;
+            }
+            
+            pixels.forEach(pixel => {
+                const item = document.createElement('div');
+                item.className = 'coloring-item';
+                
+                const isCompleted = pixel.username !== null;
+                
+                item.innerHTML = `
+                    <div>
+                        <span class="color-indicator" style="background-color: ${pixel.target_color || pixel.color}"></span>
+                        <strong>像素 (${pixel.display_x}, ${pixel.display_y})</strong>
+                        <span class="pixel-info">
+                            应填颜色: ${pixel.color_position || pixel.target_color || pixel.color}
+                        </span>
+                    </div>
+                    <div>
+                        <span class="status-badge ${isCompleted ? 'completed' : 'pending'}">
+                            ${isCompleted ? '已完成' : '待完成'}
+                        </span>
+                        ${!isCompleted ? `<button class="btn complete-btn" data-x="${pixel.x}" data-y="${pixel.y}" data-color="${pixel.target_color}">标记完成</button>` : ''}
+                    </div>
+                `;
+                
+                container.appendChild(item);
+            });
+            
+            // 为所有标记完成按钮添加事件监听
+            document.querySelectorAll('.complete-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const x = this.getAttribute('data-x');
+                    const y = this.getAttribute('data-y');
+                    const color = this.getAttribute('data-color');
+                    markPixelComplete(x, y, color);
+                });
+            });
+        }
+        
+        function updateProgress(completed, total) {
+            document.getElementById('completedPixels').textContent = completed;
+            document.getElementById('totalPixels').textContent = total;
+            
+            const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+            document.getElementById('progressPercentage').textContent = percentage + '%';
+            document.getElementById('progressFill').style.width = percentage + '%';
+        }
+        
+        async function exportSpaceData() {
+            try {
+                const response = await fetch(`/api/space/${currentSpaceId}/export?format=json`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // 创建下载链接
+                    const blob = new Blob([data.data], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `space-${currentSpaceId}-export.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } else {
+                    throw new Error(data.error || '导出失败');
+                }
+            } catch (error) {
+                console.error('导出错误:', error);
+                alert('导出失败: ' + error.message);
+            }
+        }
+        
+        async function showStats() {
+            try {
+                const response = await fetch(`/api/space/${currentSpaceId}/stats`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    let statsText = `空间统计:\n`;
+                    statsText += `总用户: ${data.total_users}\n`;
+                    statsText += `完成度: ${data.completion_percentage}%\n`;
+                    statsText += `用户贡献:\n`;
+                    data.user_contributions.forEach(contrib => {
+                        statsText += `  ${contrib.username}: ${contrib.pixel_count} 像素\n`;
+                    });
+                    
+                    alert(statsText);
+                } else {
+                    throw new Error(data.error || '获取统计失败');
+                }
+            } catch (error) {
+                console.error('统计错误:', error);
+                alert('获取统计失败: ' + error.message);
+            }
+        }
+        
+        function showError(message) {
+            // 可以在这里实现更友好的错误显示
+            console.error(message);
+            alert(message);
+        }
+        
+        async function markPixelComplete(x, y, color) {
+            try {
+                const response = await fetch(`/api/space/${currentSpaceId}/mark_complete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        x: parseInt(x),
+                        y: parseInt(y)
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // 提交成功后刷新数据
+                    loadSpaceData();
+                } else {
+                    throw new Error(result.error || '提交失败');
+                }
+            } catch (error) {
+                console.error('标记完成错误:', error);
+                alert('标记完成失败: ' + error.message);
+            }
+        }
+        
+        // 定期刷新数据（每30秒）
+        setInterval(loadSpaceData, 30000);
+    </script>
+</body>
+</html>
