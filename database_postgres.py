@@ -520,10 +520,28 @@ class DatabaseManager:
             return None
         
         if format_type == 'json':
-            return json.dumps(space_data, ensure_ascii=False, indent=2)
+            # 创建一个可序列化的副本，处理datetime对象
+            serializable_data = self._make_serializable(space_data)
+            return json.dumps(serializable_data, ensure_ascii=False, indent=2)
         elif format_type == 'png':
             # 这里可以添加生成PNG图像的逻辑
             # 暂时返回None，后续可以扩展
             return None
         
         return None
+    
+    def _make_serializable(self, obj):
+        """将对象转换为可JSON序列化的格式"""
+        if isinstance(obj, dict):
+            return {k: self._make_serializable(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._make_serializable(item) for item in obj]
+        elif hasattr(obj, 'isoformat'):  # 处理datetime对象
+            return obj.isoformat()
+        elif isinstance(obj, (int, float, str, bool)):
+            return obj
+        elif obj is None:
+            return None
+        else:
+            # 对于其他类型，转换为字符串
+            return str(obj)
